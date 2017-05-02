@@ -1,14 +1,15 @@
 <?php
 namespace Sandbox\Controller;
 
-use \Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Slim\App;
 
 abstract class AbstractController
 {
+    /** @var LoggerInterface  */
     protected $logger;
 
-    public function __construct(Logger $logger)
+    public function __construct(LoggerInterface $logger)
     {
         $this->logger = $logger;
     }

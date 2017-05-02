@@ -1,7 +1,7 @@
 <?php
 namespace Sandbox\Util;
 
-use \Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class Pinger
@@ -13,13 +13,13 @@ class Pinger
 {
     /** @var  \HTTP_Request2_Adapter */
     private $adapter;
-    /** @var  \Monolog\Logger */
+    /** @var LoggerInterface */
     private $logger;
     private $timeout = 10;
     /** @var string user agent string that ping will present when checking url */
     private $userAgent = UserAgent::MOZILLA;
 
-    public function __construct(Logger $logger, \HTTP_Request2_Adapter $adapter = null)
+    public function __construct(LoggerInterface $logger, \HTTP_Request2_Adapter $adapter = null)
     {
         if (!$adapter) {
             $adapter = new \HTTP_Request2_Adapter_Curl();

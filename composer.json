@@ -13,6 +13,10 @@
         "pear/http_request2": "^2.3"
     },
     "require-dev": {
-        "squizlabs/php_codesniffer": "*"
+        "squizlabs/php_codesniffer": "*",
+        "phpunit/phpunit": "^5.7"
+    },
+    "scripts": {
+        "test": ["php vendor/bin/phpunit --configuration phpunit.xml"]
     }
 }
