@@ -17,7 +17,7 @@
         "phpunit/phpunit": "^5.7"
     },
     "scripts": {
-        "check-syntax": [ "php vendor/bin/phpcs" ],
+        "lint": [ "php vendor/bin/phpcs" ],
         "test": [ "php vendor/bin/phpunit --configuration phpunit.xml" ]
     }
 }

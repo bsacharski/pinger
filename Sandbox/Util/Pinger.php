@@ -7,7 +7,8 @@ use Psr\Log\LoggerInterface;
  * Class Pinger
  * @package Sandbox\Util
  *
- * Pinger is a class that allows checking if given url responds correctly
+ * Pinger is a class that allows checking if given url responds correctly.
+ * PLEASE NOTE! IPv6 addresses are not handled correctly!
  */
 class Pinger
 {
@@ -54,7 +55,7 @@ class Pinger
      */
     private function doCall($url)
     {
-        $this->logger->debug('Doing a call', ['url' => $url]);
+        $originalUrl = $url;
 
         try {
             $redirectsLeft = $this->maxRedirects;
@@ -62,23 +63,28 @@ class Pinger
             // Manually follow redirects and prevent calling private hosts
             /** @var \HTTP_Request2_Response $response*/
             do {
+                $this->logger->debug("Checking url", [ 'url' => $url, 'originalUrl' => $originalUrl ]);
+
+                $isUrlValid = $this->validateUrl($url);
+                if (!$isUrlValid) {
+                    $this->logger->debug('Url is not valid ', [ 'url' => $url, 'originalUrl' => $originalUrl ]);
+                    return false;
+                }
+
+                $this->logger->debug('Doing a call', ['url' => $url]);
                 $response = $this->prepareRequest($url)->send();
                 $locationUrl = trim($response->getHeader('location'));
 
                 if ($locationUrl) {
-                    $this->logger->debug('Redirect detected', [ 'url' => $url, 'newUrl' => $locationUrl ]);
+                    $this->logger->debug(
+                        'Redirect detected',
+                        [
+                            'url' => $url,
+                            'newUrl' => $locationUrl,
+                            'originalUrl' => $originalUrl
+                        ]
+                    );
 
-                    // Check if new url is not in private/restricted class
-                    if (!$this->validateUrl($locationUrl)) {
-                        $this->logger->debug(
-                            'Redirect to restricted url. Blocking.',
-                            ['url' => $url, 'newUrl' => $locationUrl]
-                        );
-
-                        return false;
-                    }
-
-                    $this->logger->debug('New url is valid', [ 'url' => $url, 'newUrl' => $locationUrl ]);
                     $url = $locationUrl;
                 }
                 $redirectsLeft--;
@@ -107,6 +113,26 @@ class Pinger
     private function isHttpProtocol($protocol)
     {
         return in_array($protocol, ['http', 'https']);
+    }
+
+    /**
+     * Checks if given hostname is an IPv6 address
+     * @param string $hostname
+     * @return bool true if $hostname is IPv6, otherwise false
+     */
+    private function isIPv6($hostname)
+    {
+        $this->logger->debug('Checking if hostname is IPv6 address', [ 'hostname' => $hostname ]);
+
+        // parse_url seems to leave [ ] around IPv6 address - need to get rid of that
+        $hostname = trim(preg_replace("/[\\[\\]]/", '', $hostname));
+
+        $isIPv6 = filter_var($hostname, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
+        if ($isIPv6) {
+            $this->logger->debug('Detected IPv6 address', [ 'hostname' => $hostname ]);
+        }
+
+        return !!$isIPv6;
     }
 
     /**
@@ -171,6 +197,14 @@ class Pinger
         $isValidProtocol = $this->isHttpProtocol($urlData['scheme']);
         $isValidIp = !$this->isPrivateIP($urlData['host']);
 
+        /* IPv6 addresses are not supported!
+         * If someone knows how to properly add this (with domain resolution) - feel free to add it.
+         */
+        if ($this->isIPv6($urlData['host'])) {
+            $this->logger->debug('IPv6 address detected - marking as invalid', [ 'url' => $url ]);
+            return false;
+        }
+
         return $isValidProtocol && $isValidIp;
     }
 
@@ -184,15 +218,6 @@ class Pinger
     public function check($url)
     {
         $this->logger->debug("Checking url", ['url' => $url]);
-
-        $isValid = $this->validateUrl($url);
-        if (! $isValid) {
-            $this->logger->debug('Url is not valid', ['url' => $url]);
-            return false;
-        }
-
-        $this->logger->debug('Url is valid', ['url' => $url]);
-
         return $this->doCall($url);
     }
 }

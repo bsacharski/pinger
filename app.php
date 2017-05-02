@@ -27,8 +27,4 @@ $container['logger'] = function ($c) {
 $urlController = new UrlController($container->get('logger'));
 $urlController->register($app);
 
-$app->get('/test', function ($req, $res) {
-    return $res->getBody()->write('testowy');
-});
-
 $app->run();

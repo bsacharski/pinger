@@ -111,10 +111,32 @@ class PingerTest extends TestCase
     {
         $startUrl = 'http://redirectme.com/test';
         $requestMock = new \HTTP_Request2_Adapter_Mock();
-        $requestMock->addResponse( "HTTP/1.1 301 Moved Permanently\nLocation: http://google.pl", $startUrl);
+        $requestMock->addResponse("HTTP/1.1 301 Moved Permanently\nLocation: http://google.pl", $startUrl);
         $requestMock->addResponse(self::OK_RESPONSE);
 
         $pinger = new Pinger(new NullLogger(), $requestMock);
         $this->assertTrue($pinger->check($startUrl), 'Pinger should follow redirect calls to valid hosts');
     }
+
+    public function testFullHttpIPv6Address()
+    {
+        $url = 'http://[2001:0db8:0000:0000:0000:0000:1428:57ab]';
+        $pinger = $this->stubPingerWithSuccessCalls();
+        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
+    }
+
+    // Uncomment tests below if you have an idea on how to process IPv6 address. I dunno.
+//    public function testHttpIPv6LoopbackAddress()
+//    {
+//        $url = 'http://[::1/128]';
+//        $pinger = $this->stubPingerWithSuccessCalls();
+//        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
+//    }
+//
+//    public function testHttpIPv6AddressWithPrefix()
+//    {
+//        $url = 'http://[2001:db8:a0b:12f0::1/64]';
+//        $pinger = $this->stubPingerWithSuccessCalls();
+//        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
+//    }
 }
