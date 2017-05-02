@@ -11,44 +11,53 @@ use \Monolog\Logger;
  */
 class Pinger
 {
-    /** @var string user agent string that ping will present when checking url */
-    private $userAgent = UserAgent::MOZILLA;
+    /** @var  \HTTP_Request2_Adapter */
+    private $adapter;
     /** @var  \Monolog\Logger */
     private $logger;
     private $timeout = 10;
+    /** @var string user agent string that ping will present when checking url */
+    private $userAgent = UserAgent::MOZILLA;
 
-    public function __construct(Logger $logger)
+    public function __construct(Logger $logger, \HTTP_Request2_Adapter $adapter = null)
     {
+        if (!$adapter) {
+            $adapter = new \HTTP_Request2_Adapter_Curl();
+        }
+
+        $this->adapter = $adapter;
         $this->logger = $logger;
     }
 
     /**
+     * Checks if given url is online (responds correctly to GET request)
      * @param string $url
-     * @return bool
+     * @return bool true if url responds, otherwise false
      */
-    private function curlCall($url)
+    private function doCall($url)
     {
-        $curlOpts = [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_USERAGENT => $this->userAgent
-        ];
+        /** @var \HTTP_Request2 $request */
+        $request = new \HTTP_Request2($url, \HTTP_Request2::METHOD_GET, [
+            'adapter' => $this->adapter,
+            'timeout' => $this->timeout,
+            'ssl_verify_peer' => false,
+            'follow_redirects' => true
+        ]);
 
-        $curl = curl_init($url);
-        curl_setopt_array($curl, $curlOpts);
+        $this->logger->debug('Doing a call', ['url' => $url]);
+        /** @var \HTTP_Request2_Response */
+        try {
+            $response = $request->setHeader('user-agent', $this->userAgent)->send();
+            $statusCode = $response->getStatus();
+            $isOk = $statusCode >= 200 && $statusCode < 400;
+        } catch (\HTTP_Request2_Exception $e) {
+            $isOk = false;
+        }
 
-        $this->logger->debug('Doing a curl call', ['url' => $url]);
-        curl_exec($curl);
-        $responseInfo = curl_getinfo($curl);
-        curl_close($curl);
-
-        $isOk = $responseInfo['http_code'] >= 200 && $responseInfo['http_code'] < 400;
         if ($isOk) {
-            $this->logger->debug('Url response success', ['url' => $url, 'response' => $responseInfo]);
+            $this->logger->debug('Url response success', [ 'url' => $url ]);
         } else {
-            $this->logger->debug('Url response failure', ['url' => $url, 'response' => $responseInfo]);
+            $this->logger->debug('Url response failure', [ 'url' => $url, 'error' => $request->getLastEvent() ]);
         }
 
         return $isOk;
@@ -79,9 +88,9 @@ class Pinger
             $ip = $hostname;
         } else {
             // get ip using hostname - this has to append the dot at end!
-            $resolved = gethostbyname($hostname . ".");
+            $resolved = gethostbyname($hostname . '.');
             // failed to resolve the domain - should be fine
-            if ($resolved === $hostname) {
+            if ($resolved === ($hostname . '.')) {
                 return false;
             }
 
@@ -147,6 +156,6 @@ class Pinger
 
         $this->logger->debug('Url is valid', ['url' => $url]);
 
-        return $this->curlCall($url);
+        return $this->doCall($url);
     }
 }
