@@ -113,10 +113,9 @@ class UrlController extends AbstractController
 
         $app->group('/url', function () use ($self) {
             /** @var App $this */
-            $this->add([$self, 'validateRequestMiddleware']);
-
             $this->get('/check', [$self, 'checkUrl']);
             $this->get('/thumbnail', [$self, 'getThumbnail']);
-        });
+        })
+        ->add([$self, 'validateRequestMiddleware']);
     }
 }

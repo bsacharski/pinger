@@ -17,21 +17,24 @@ class PingerTest extends TestCase
     const OK_RESPONSE = 'HTTP/1.1 200 OK';
     const NOT_FOUND_RESPONSE = 'HTTP/1.1 404 NOT FOUND';
 
+    private function stubPinger($response)
+    {
+        $requestStub = new \HTTP_Request2_Adapter_Mock();
+        $requestStub->addResponse($response);
+        return new Pinger(new NullLogger(), $requestStub);
+    }
+
     /**
      * Prepares a Pinger instance that will always reply successfully to a GET request
      */
     private function stubPingerWithSuccessCalls()
     {
-        $requestStub = new \HTTP_Request2_Adapter_Mock();
-        $requestStub->addResponse(self::OK_RESPONSE);
-        return new Pinger(new NullLogger(), $requestStub);
+        return $this->stubPinger(self::OK_RESPONSE);
     }
 
     private function stubPingerWithFailedCalls()
     {
-        $requestStub = new \HTTP_Request2_Adapter_Mock();
-        $requestStub->addResponse(self::NOT_FOUND_RESPONSE);
-        return new Pinger(new NullLogger(), $requestStub);
+        return $this->stubPinger(self::NOT_FOUND_RESPONSE);
     }
 
     public function testHttpLocalhost()
@@ -95,5 +98,23 @@ class PingerTest extends TestCase
         $url = 'file:///etc/passwd';
         $pinger = $this->stubPingerWithSuccessCalls();
         $this->assertFalse($pinger->check($url), "Pinger should reject calls to non http/https protocols");
+    }
+
+    public function testRedirectToHttpLocalhost()
+    {
+        $url = 'http://somerogueurl.com';
+        $pinger = $this->stubPinger("HTTP/1.1 301 Moved Permanently\nLocation: http://localhost");
+        $this->assertFalse($pinger->check($url), 'Pinger should not follow redirect calls to private/reserved IPs');
+    }
+
+    public function testRedirectToHttpGoogle()
+    {
+        $startUrl = 'http://redirectme.com/test';
+        $requestMock = new \HTTP_Request2_Adapter_Mock();
+        $requestMock->addResponse( "HTTP/1.1 301 Moved Permanently\nLocation: http://google.pl", $startUrl);
+        $requestMock->addResponse(self::OK_RESPONSE);
+
+        $pinger = new Pinger(new NullLogger(), $requestMock);
+        $this->assertTrue($pinger->check($startUrl), 'Pinger should follow redirect calls to valid hosts');
     }
 }
