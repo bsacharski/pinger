@@ -125,6 +125,20 @@ class PingerTest extends TestCase
         $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
     }
 
+    public function testEmptyUrl()
+    {
+        $url = '';
+        $pinger = $this->stubPingerWithSuccessCalls();
+        $this->assertFalse($pinger->check($url), 'Pinger should reject empty url');
+    }
+
+    public function testRealUrl()
+    {
+        $url = 'http://google.pl';
+        $pinger = $this->stubPingerWithSuccessCalls();
+        $this->assertTrue($pinger->check($url), "Pinger should validate url {$url}");
+    }
+
     // Uncomment tests below if you have an idea on how to process IPv6 address. I dunno.
 //    public function testHttpIPv6LoopbackAddress()
 //    {
