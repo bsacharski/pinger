@@ -140,17 +140,24 @@ class PingerTest extends TestCase
     }
 
     // Uncomment tests below if you have an idea on how to process IPv6 address. I dunno.
-//    public function testHttpIPv6LoopbackAddress()
-//    {
-//        $url = 'http://[::1/128]';
-//        $pinger = $this->stubPingerWithSuccessCalls();
-//        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
-//    }
-//
-//    public function testHttpIPv6AddressWithPrefix()
-//    {
-//        $url = 'http://[2001:db8:a0b:12f0::1/64]';
-//        $pinger = $this->stubPingerWithSuccessCalls();
-//        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
-//    }
+    public function testHttpIPv6LoopbackAddress()
+    {
+        $url = 'http://[::1]';
+        $pinger = $this->stubPingerWithSuccessCalls();
+        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
+    }
+
+    public function testHttpIPv6DroppedLeadingZeros()
+    {
+        $url = 'http://[fe80:0:0:0:204:61ff:fe9d:f156]';
+        $pinger = $this->stubPingerWithSuccessCalls();
+        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
+    }
+
+    public function testHttpIPv6LinkLocalPrefix()
+    {
+        $url = 'http://[fe80::]';
+        $pinger = $this->stubPingerWithSuccessCalls();
+        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
+    }
 }

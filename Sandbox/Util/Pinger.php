@@ -9,6 +9,8 @@ use Psr\Log\LoggerInterface;
  *
  * Pinger is a class that allows checking if given url responds correctly.
  * PLEASE NOTE! IPv6 addresses are not handled correctly!
+ *
+ * // FIXME: This really should use some external library to validate and process IPv6 address
  */
 class Pinger
 {
@@ -127,7 +129,25 @@ class Pinger
         // parse_url seems to leave [ ] around IPv6 address - need to get rid of that
         $hostname = trim(preg_replace("/[\\[\\]]/", '', $hostname));
 
-        $isIPv6 = filter_var($hostname, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
+        $regex = '/^\\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))'
+            . '|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}'
+            . '|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))'
+            . '|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})'
+            . '|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))'
+            . '|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})'
+            . '|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)'
+            . '(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))'
+            . '|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:'
+            . '((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))'
+            . '|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:'
+            . '((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))'
+            . '|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:'
+            . '((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))'
+            . '|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}'
+            . ':((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?\\s*$/';
+
+        $isIPv6 = preg_match($regex, $hostname) > 0;
+
         if ($isIPv6) {
             $this->logger->debug('Detected IPv6 address', [ 'hostname' => $hostname ]);
         }
