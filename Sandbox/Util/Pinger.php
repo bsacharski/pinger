@@ -214,9 +214,6 @@ class Pinger
             return false;
         }
 
-        $isValidProtocol = $this->isHttpProtocol($urlData['scheme']);
-        $isValidIp = !$this->isPrivateIP($urlData['host']);
-
         /* IPv6 addresses are not supported!
          * If someone knows how to properly add this (with domain resolution) - feel free to add it.
          */
@@ -224,6 +221,9 @@ class Pinger
             $this->logger->debug('IPv6 address detected - marking as invalid', [ 'url' => $url ]);
             return false;
         }
+
+        $isValidProtocol = $this->isHttpProtocol($urlData['scheme']);
+        $isValidIp = !$this->isPrivateIP($urlData['host']);
 
         return $isValidProtocol && $isValidIp;
     }
