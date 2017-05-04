@@ -102,7 +102,7 @@ class Pinger
         if ($isOk) {
             $this->logger->debug('Url response success', [ 'url' => $url ]);
         } else {
-            $this->logger->debug('Url response failure', [ 'url' => $url, 'status' => $response->getStatus() ]);
+            $this->logger->debug('Url response failure', [ 'url' => $url ]);
         }
 
         return $isOk;
