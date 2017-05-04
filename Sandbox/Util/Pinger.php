@@ -181,14 +181,14 @@ class Pinger
         }
 
         // if we're dealing with IPv4 it shouldn't be in private nor in reserved range
-        $isPrivIPv4 = filter_var(
+        $publicIp = filter_var(
             $ip,
             FILTER_VALIDATE_IP,
             (FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
         );
 
         // private/reserved ip detected
-        if (!$isPrivIPv4) {
+        if (!$publicIp) {
             $this->logger->debug('Private IPv4 detected', [ 'hostname' => $hostname, 'ip' => $ip ]);
             return true;
         }
