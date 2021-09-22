@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ruleset name="PingerRules">
     <file>app.php</file>
-    <file>Sandbox/</file>
+    <file>src/</file>
     <rule ref="PSR12" />
 </ruleset>

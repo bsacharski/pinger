@@ -4,3 +4,4 @@ vendor/
 coverage/
 *.iml
 .phpunit.result.cache
+junit.xml
