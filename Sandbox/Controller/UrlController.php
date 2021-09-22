@@ -1,24 +1,23 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bsa
- * Date: 28.04.17
- * Time: 15:26
- */
+
+declare(strict_types=1);
 
 namespace Sandbox\Controller;
 
 use mikehaertl\wkhtmlto\Image;
 use Monolog\Logger;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Sandbox\Util\Pinger;
 use Slim\App;
-use Slim\Http\Request;
-use Slim\Http\Response;
+use Slim\Psr7\Response;
+use Slim\Psr7\Stream;
+use Slim\Routing\RouteCollectorProxy;
 
 class UrlController extends AbstractController
 {
-    /** @var Pinger */
-    private $pinger;
+    private Pinger $pinger;
 
     public function __construct(Logger $logger)
     {
@@ -26,9 +25,10 @@ class UrlController extends AbstractController
         $this->pinger = new Pinger($logger);
     }
 
-    public function checkUrl(Request $req, Response $res)
+    public function checkUrl(ServerRequestInterface $req, ResponseInterface $res): ResponseInterface
     {
-        $url = $req->getQueryParam('url');
+        /** @var string $url */
+        $url = $req->getQueryParams()['url'];
 
         $result = $this->pinger->check($url);
         if ($result) {
@@ -38,10 +38,11 @@ class UrlController extends AbstractController
         }
     }
 
-    public function getThumbnail(Request $req, Response $res)
+    public function getThumbnail(ServerRequestInterface $req, ResponseInterface $res): ResponseInterface
     {
         // TODO: Read settings from files
-        $url = $req->getQueryParam('url');
+        /** @var string $url */
+        $url = $req->getQueryParams()['url'];
         $this->logger->debug('Grabbing thumbnail', [ 'url' => $url ]);
 
         $isOnline = $this->pinger->check($url);
@@ -75,7 +76,7 @@ class UrlController extends AbstractController
 
         $this->logger->debug('Thumbnail generated. Sending response.', [ 'url' => $url, 'out' => $file ]);
         $fh = fopen($file, 'rb');
-        $stream = new \Slim\Http\Stream($fh);
+        $stream = new Stream($fh);
 
         return $res->withHeader('Content-Type', 'application/force-download')
                 ->withHeader('Content-Type', 'application/octet-stream')
@@ -90,32 +91,33 @@ class UrlController extends AbstractController
                 ->withBody($stream);
     }
 
-    public function validateRequestMiddleware(Request $req, Response $res, $next)
+    public function validateRequestMiddleware(ServerRequestInterface $req, RequestHandlerInterface $handler): ResponseInterface
     {
-        $url = $req->getQueryParam('url');
+        $params = $req->getQueryParams();
+        $url = $params['url'] ?? false;
         if (!$url) {
+            $errorResponse = new Response(400);
             $this->logger->debug('Invalid request received - missing query params', ['request' => $req]);
-            $errorRes = $res->withStatus(400);
-            $errorRes->getBody()
+            $errorResponse->getBody()
                 ->write('Missing url param');
 
-            return $errorRes;
+            return $errorResponse;
         }
 
         // pass to next function if is ok
-        return $next($req, $res);
+        return $handler->handle($req);
     }
 
-    public function register(App $app)
+    public function register(App $app): void
     {
         $this->logger->debug('Registering UrlController');
-        $self = $this;
 
-        $app->group('/url', function () use ($self) {
-            /** @var App $this */
-            $this->get('/check', [$self, 'checkUrl']);
-            $this->get('/thumbnail', [$self, 'getThumbnail']);
+        // App::group callable is being bound to another context, so we need to grab reference to $this
+        $self = $this;
+        $app->group('/url', function (RouteCollectorProxy $group) use ($self): void {
+            $group->get('/check', [$self, 'checkUrl']);
+            $group->get('/thumbnail', [$self, 'getThumbnail']);
         })
-        ->add([$self, 'validateRequestMiddleware']);
+        ->add([$this, 'validateRequestMiddleware']);
     }
 }

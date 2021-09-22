@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<ruleset name="MZApi_rules">
+<ruleset name="PingerRules">
     <file>app.php</file>
     <file>Sandbox/</file>
-    <rule ref="PSR2" />
+    <rule ref="PSR12" />
 </ruleset>

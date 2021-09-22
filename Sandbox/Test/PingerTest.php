@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: bsa
- * Date: 02.05.17
- * Time: 12:11
- */
 
 namespace Sandbox\Test;
 
@@ -14,8 +8,8 @@ use Sandbox\Util\Pinger;
 
 class PingerTest extends TestCase
 {
-    const OK_RESPONSE = 'HTTP/1.1 200 OK';
-    const NOT_FOUND_RESPONSE = 'HTTP/1.1 404 NOT FOUND';
+    private const OK_RESPONSE = 'HTTP/1.1 200 OK';
+    private const NOT_FOUND_RESPONSE = 'HTTP/1.1 404 NOT FOUND';
 
     private function stubPinger($response)
     {

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace Sandbox\Util;
 
 use Psr\Log\LoggerInterface;
@@ -16,12 +19,11 @@ class Pinger
 {
     /** @var  \HTTP_Request2_Adapter */
     private $adapter;
-    /** @var LoggerInterface */
-    private $logger;
-    private $maxRedirects = 5;
-    private $timeout = 10;
+    private LoggerInterface $logger;
+    private int $maxRedirects = 5;
+    private int $timeout = 10;
     /** @var string user agent string that ping will present when checking url */
-    private $userAgent = UserAgent::MOZILLA;
+    private string $userAgent = UserAgent::MOZILLA;
 
     public function __construct(LoggerInterface $logger, \HTTP_Request2_Adapter $adapter = null)
     {
@@ -33,11 +35,7 @@ class Pinger
         $this->logger = $logger;
     }
 
-    /**
-     * @param $url
-     * @return \HTTP_Request2
-     */
-    private function prepareRequest($url)
+    private function prepareRequest(string $url): \HTTP_Request2
     {
         /** @var \HTTP_Request2 $request */
         $request = new \HTTP_Request2($url, \HTTP_Request2::METHOD_GET, [
@@ -55,7 +53,7 @@ class Pinger
      * @param string $url
      * @return bool true if url responds, otherwise false
      */
-    private function doCall($url)
+    private function isOnline(string $url): bool
     {
         $originalUrl = $url;
 
@@ -63,7 +61,6 @@ class Pinger
             $redirectsLeft = $this->maxRedirects;
 
             // Manually follow redirects and prevent calling private hosts
-            /** @var \HTTP_Request2_Response $response*/
             do {
                 $this->logger->debug("Checking url", [ 'url' => $url, 'originalUrl' => $originalUrl ]);
 
@@ -75,7 +72,7 @@ class Pinger
 
                 $this->logger->debug('Doing a call', ['url' => $url]);
                 $response = $this->prepareRequest($url)->send();
-                $locationUrl = trim($response->getHeader('location'));
+                $locationUrl = trim($response->getHeader('location') ?? '');
 
                 if ($locationUrl) {
                     $this->logger->debug(
@@ -112,7 +109,7 @@ class Pinger
      * @param string $protocol
      * @return bool
      */
-    private function isHttpProtocol($protocol)
+    private function isHttpProtocol($protocol): bool
     {
         return in_array($protocol, ['http', 'https']);
     }
@@ -122,7 +119,7 @@ class Pinger
      * @param string $hostname
      * @return bool true if $hostname is IPv6, otherwise false
      */
-    private function isIPv6($hostname)
+    private function isIPv6($hostname): bool
     {
         $this->logger->debug('Checking if hostname is IPv6 address', [ 'hostname' => $hostname ]);
 
@@ -162,7 +159,7 @@ class Pinger
      * @param string $hostname either an ip address or hostname
      * @return bool true if hostname/ip belongs to private/reserved IP class, otherwise false
      */
-    private function isPrivateIP($hostname)
+    private function isPrivateIP(string $hostname): bool
     {
         $this->logger->debug('Check if hostname is private ip', [ 'hostname' => $hostname ]);
 
@@ -203,7 +200,7 @@ class Pinger
      * @param string $url
      * @return bool true if url is valid, otherwise false
      */
-    private function validateUrl($url)
+    private function validateUrl(string $url): bool
     {
         if (strlen($url) === 0) {
             return false;
@@ -235,9 +232,9 @@ class Pinger
      * @param string $url
      * @return bool true if url responds correctly, otherwise false
      */
-    public function check($url)
+    public function check(string $url): bool
     {
         $this->logger->debug("Checking url", ['url' => $url]);
-        return $this->doCall($url);
+        return $this->isOnline($url);
     }
 }

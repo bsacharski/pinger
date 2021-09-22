@@ -2,3 +2,5 @@ log/
 vendor/
 .idea/
 coverage/
+*.iml
+.phpunit.result.cache
