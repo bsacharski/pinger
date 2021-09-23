@@ -75,7 +75,10 @@ class Pinger
 
                 $this->logger->debug('Doing a call', ['url' => $url]);
                 $response = $this->prepareRequest($url)->send();
-                $locationUrl = trim($response->getHeader('location') ?? '');
+
+                /** @var string $location */
+                $location = $response->getHeader('location') ?? '';
+                $locationUrl = trim($location);
 
                 if ($locationUrl) {
                     $this->logger->debug(

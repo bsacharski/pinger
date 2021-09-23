@@ -19,7 +19,7 @@ class PingController extends AbstractController
         array $args
     ): ResponseInterface {
         $jsonResponse = $response->withHeader('Content-Type', 'application/json');
-        $jsonResponse->getBody()->write(json_encode('pong'));
+        $jsonResponse->getBody()->write('pong');
 
         return $jsonResponse;
     }
