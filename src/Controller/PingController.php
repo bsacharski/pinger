@@ -10,6 +10,9 @@ use Slim\App;
 
 class PingController extends AbstractController
 {
+    /**
+     * @param array<string, mixed> $args
+     */
     public function pingAction(
         ServerRequestInterface $request,
         ResponseInterface $response,
