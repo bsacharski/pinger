@@ -1,24 +1,23 @@
 <phpunit
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/5.2/phpunit.xsd"
+        xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
         colors="true"
     >
     <testsuites>
         <testsuite name="Sandbox API">
-            <directory>./Sandbox/Test/</directory>
+            <directory>./test/</directory>
         </testsuite>
     </testsuites>
+    <coverage processUncoveredFiles="true" cacheDirectory="coverage/cache">
+        <include>
+            <directory>./src/</directory>
+        </include>
+        <report>
+            <clover outputFile="coverage/global/clover.xml"/>
+            <html outputDirectory="coverage/global/report"/>
+        </report>
+    </coverage>
     <logging>
-        <log type="coverage-clover" target="coverage/global/clover.xml"/>
-        <log type="coverage-html" target="coverage/global/report"/>
-        <log type="junit" target="coverage/global/results.xml"/>
+        <junit outputFile="junit.xml"/>
     </logging>
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
-            <directory>./Sandbox/</directory>
-            <exclude>
-                <directory>./Sandbox/Test</directory>
-            </exclude>
-        </whitelist>
-    </filter>
 </phpunit>

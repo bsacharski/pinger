@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  api:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    ports:
+      - "8080:8080"
+    command: ["php", "-S", "0.0.0.0:8080", "-t", "/opt/project", "/opt/project/app.php"]
+    working_dir: "/opt/project"
+    volumes:
+      - ".:/opt/project"
