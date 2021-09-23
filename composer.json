@@ -6,6 +6,11 @@
             "Sandbox\\": "src"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Sandbox\\Test\\": "test"
+        }
+    },
     "config": {
         "sort-packages": true
     },

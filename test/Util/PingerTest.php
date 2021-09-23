@@ -1,6 +1,6 @@
 <?php
 
-namespace Sandbox\Test;
+namespace Sandbox\Test\Util;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -31,44 +31,9 @@ class PingerTest extends TestCase
         return $this->stubPinger(self::NOT_FOUND_RESPONSE);
     }
 
-    public function testHttpLocalhost()
-    {
-        $url = 'http://localhost:8080';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject calls to {$url}");
-    }
-
-    public function testHttpsLocalhost()
-    {
-        $url = 'https://localhost:8080';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject calls to {$url}");
-    }
-
-    public function testHttpPrivateIpAddress()
-    {
-        $url = 'http://192.168.1.1';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject calls to {$url}");
-    }
-
-    public function testHttpsPrivateIpAddress()
-    {
-        $url = 'https://192.168.1.1';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject calls to {$url}");
-    }
-
     public function testValidHttpUrl()
     {
         $url = 'http://somevalidurl.com';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertTrue($pinger->check($url), "Pinger should accept calls to {$url}");
-    }
-
-    public function testValidHttpsUrl()
-    {
-        $url = 'https://somevalidurl.com';
         $pinger = $this->stubPingerWithSuccessCalls();
         $this->assertTrue($pinger->check($url), "Pinger should accept calls to {$url}");
     }
@@ -87,13 +52,6 @@ class PingerTest extends TestCase
         $this->assertFalse($pinger->check($url), "Pinger should receive 404 when calling {$url}");
     }
 
-    public function testValidFileUrl()
-    {
-        $url = 'file:///etc/passwd';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject calls to non http/https protocols");
-    }
-
     public function testRedirectToHttpLocalhost()
     {
         $url = 'http://somerogueurl.com';
@@ -110,48 +68,5 @@ class PingerTest extends TestCase
 
         $pinger = new Pinger(new NullLogger(), $requestMock);
         $this->assertTrue($pinger->check($startUrl), 'Pinger should follow redirect calls to valid hosts');
-    }
-
-    public function testFullHttpIPv6Address()
-    {
-        $url = 'http://[2001:0db8:0000:0000:0000:0000:1428:57ab]';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
-    }
-
-    public function testEmptyUrl()
-    {
-        $url = '';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), 'Pinger should reject empty url');
-    }
-
-    public function testRealUrl()
-    {
-        $url = 'http://google.pl';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertTrue($pinger->check($url), "Pinger should validate url {$url}");
-    }
-
-    // Uncomment tests below if you have an idea on how to process IPv6 address. I dunno.
-    public function testHttpIPv6LoopbackAddress()
-    {
-        $url = 'http://[::1]';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
-    }
-
-    public function testHttpIPv6DroppedLeadingZeros()
-    {
-        $url = 'http://[fe80:0:0:0:204:61ff:fe9d:f156]';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
-    }
-
-    public function testHttpIPv6LinkLocalPrefix()
-    {
-        $url = 'http://[fe80::]';
-        $pinger = $this->stubPingerWithSuccessCalls();
-        $this->assertFalse($pinger->check($url), "Pinger should reject IPv6 address {$url}");
     }
 }

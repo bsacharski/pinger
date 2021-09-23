@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sandbox\Util;
 
 use Psr\Log\LoggerInterface;
+use Sandbox\Util\Validator\UrlValidator;
 
 /**
  * Class Pinger
@@ -24,6 +25,7 @@ class Pinger
     private int $timeout = 10;
     /** @var string user agent string that ping will present when checking url */
     private string $userAgent = UserAgent::MOZILLA;
+    private UrlValidator $urlValidator;
 
     public function __construct(LoggerInterface $logger, \HTTP_Request2_Adapter $adapter = null)
     {
@@ -33,6 +35,7 @@ class Pinger
 
         $this->adapter = $adapter;
         $this->logger = $logger;
+        $this->urlValidator = new UrlValidator(true);
     }
 
     private function prepareRequest(string $url): \HTTP_Request2
@@ -106,95 +109,6 @@ class Pinger
     }
 
     /**
-     * @param string $protocol
-     * @return bool
-     */
-    private function isHttpProtocol($protocol): bool
-    {
-        return in_array($protocol, ['http', 'https']);
-    }
-
-    /**
-     * Checks if given hostname is an IPv6 address
-     * @param string $hostname
-     * @return bool true if $hostname is IPv6, otherwise false
-     */
-    private function isIPv6($hostname): bool
-    {
-        $this->logger->debug('Checking if hostname is IPv6 address', [ 'hostname' => $hostname ]);
-
-        // parse_url seems to leave [ ] around IPv6 address - need to get rid of that
-        $hostname = trim(preg_replace("/[\\[\\]]/", '', $hostname));
-
-        $regex = '/^\\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))'
-            . '|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}'
-            . '|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))'
-            . '|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})'
-            . '|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))'
-            . '|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})'
-            . '|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)'
-            . '(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))'
-            . '|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:'
-            . '((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))'
-            . '|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:'
-            . '((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))'
-            . '|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:'
-            . '((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))'
-            . '|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}'
-            . ':((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?\\s*$/';
-
-        $isIPv6 = preg_match($regex, $hostname) > 0;
-
-        if ($isIPv6) {
-            $this->logger->debug('Detected IPv6 address', [ 'hostname' => $hostname ]);
-        }
-
-        return !!$isIPv6;
-    }
-
-    /**
-     * Checks if given hostname belongs to private/reserved IP class.
-     * If hostname is not an ip, it will be translated to ip using <pre>gethostbyname</pre>.
-     *
-     * @param string $hostname either an ip address or hostname
-     * @return bool true if hostname/ip belongs to private/reserved IP class, otherwise false
-     */
-    private function isPrivateIP(string $hostname): bool
-    {
-        $this->logger->debug('Check if hostname is private ip', [ 'hostname' => $hostname ]);
-
-        $isIPv4 = filter_var($hostname, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
-        if ($isIPv4) {
-            $ip = $hostname;
-        } else {
-            // get ip using hostname - this has to append the dot at end!
-            $resolved = gethostbyname($hostname . '.');
-            // failed to resolve the domain - should be fine
-            if ($resolved === ($hostname . '.')) {
-                return false;
-            }
-
-            $ip = $resolved;
-        }
-
-        // if we're dealing with IPv4 it shouldn't be in private nor in reserved range
-        $publicIp = filter_var(
-            $ip,
-            FILTER_VALIDATE_IP,
-            (FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
-        );
-
-        // private/reserved ip detected
-        if (!$publicIp) {
-            $this->logger->debug('Private IPv4 detected', [ 'hostname' => $hostname, 'ip' => $ip ]);
-            return true;
-        }
-
-        // not an private ip
-        return false;
-    }
-
-    /**
      * Checks if url is valid
      *
      * @param string $url
@@ -202,27 +116,7 @@ class Pinger
      */
     private function validateUrl(string $url): bool
     {
-        if (strlen($url) === 0) {
-            return false;
-        }
-
-        $urlData = parse_url($url);
-        if (!$urlData || !isset($urlData['scheme']) || !isset($urlData['host'])) {
-            return false;
-        }
-
-        /* IPv6 addresses are not supported!
-         * If someone knows how to properly add this (with domain resolution) - feel free to add it.
-         */
-        if ($this->isIPv6($urlData['host'])) {
-            $this->logger->debug('IPv6 address detected - marking as invalid', [ 'url' => $url ]);
-            return false;
-        }
-
-        $isValidProtocol = $this->isHttpProtocol($urlData['scheme']);
-        $isValidIp = !$this->isPrivateIP($urlData['host']);
-
-        return $isValidProtocol && $isValidIp;
+        return $this->urlValidator->isValid($url);
     }
 
     /**
