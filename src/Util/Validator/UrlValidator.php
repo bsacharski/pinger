@@ -36,10 +36,18 @@ class UrlValidator
         }
 
         $scheme = $components['scheme'];
-        // parse_url seems to leave [ ] around IPv6 address - need to get rid of that
-        $host = trim(preg_replace("/[\\[\\]]/", '', $components['host']));
+        $sanitizedHostname = $this->santizeHostname($components['host']);
 
-        return new UrlComponents($scheme, $host);
+        return new UrlComponents($scheme, $sanitizedHostname);
+    }
+
+    private function santizeHostname(string $hostname): string
+    {
+        // parse_url seems to leave [ ] around IPv6 address - need to get rid of that
+        /** @var string $sanitizedHostname */
+        $sanitizedHostname = preg_replace("/[\\[\\]]/", '', $hostname);
+        $sanitizedHostname = trim($sanitizedHostname);
+        return $sanitizedHostname;
     }
 
     public function isValid(string $url): bool
