@@ -37,8 +37,10 @@ class UrlController extends AbstractController
         }
     }
 
-    public function validateRequestMiddleware(ServerRequestInterface $req, RequestHandlerInterface $handler): ResponseInterface
-    {
+    public function validateRequestMiddleware(
+        ServerRequestInterface $req,
+        RequestHandlerInterface $handler
+    ): ResponseInterface {
         $params = $req->getQueryParams();
         $url = $params['url'] ?? false;
         if (!$url) {
